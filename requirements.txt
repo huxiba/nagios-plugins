@@ -1,0 +1,2 @@
+cx_Oracle>=6.1
+requests>=2.18
