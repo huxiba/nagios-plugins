@@ -18,7 +18,7 @@ check datasource status
 http://host:port/management/tenant-monitoring/datasources/datasource_name
 
 ### install
-On the Weblogic server admin console, enable the RESTful management service in domain generic advance setting
+On the Weblogic server admin console, enable the RESTful management service in domain generic advance setting<br>
 install Python3.6
 ```
 yum install -y https://centos7.iuscommunity.org/ius-release.rpm
