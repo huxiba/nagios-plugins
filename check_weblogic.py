@@ -1,9 +1,11 @@
-#!/usr/bin/env python3
+#!/opt/ActivePython-3.6/bin/python3
 # -*- coding: utf-8 -*-
+from __future__ import print_function
 import getopt
 import sys
 import requests
 from requests.auth import HTTPBasicAuth
+
 
 # Nagios return codes
 OK = 0
@@ -39,11 +41,12 @@ def _get_console_response(url, user, password):
     """
     ba = HTTPBasicAuth(username=user, password=password)
     try:
-        with requests.get(url, headers={"Accept": "application/json"}, auth=ba) as r:
-            if r.status_code == 200:
-                return r.json()
-            else:
-                print()
+        r = requests.get(url, headers={"Accept": "application/json"}, auth=ba)
+        if r.status_code == 200:
+            return r.json()
+        else:
+            print()
+        r.close()
     except requests.RequestException as err:
         print("error ocour when make requests to {0}".format(err.request.url))
         sys.exit(UNKNOWN)

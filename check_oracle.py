@@ -1,13 +1,15 @@
-#!/usr/bin/env python3.6
+#!/usr/local/bin/python
 # -*- coding: utf-8 -*-
 # Copyright 2018 (c) huxiba@gmail.com
 
+from __future__ import print_function
 import cx_Oracle
 import sys
 import getopt
 import subprocess
 import os.path
 import re
+
 
 # Nagios return codes
 OK = 0
@@ -59,11 +61,8 @@ def _check_rac_crs(cfg, warning=None, critical=None):
     bin_name = os.path.join(cfg.oh, "bin", bin_name)
     try:
         args = bin_name + " check crs"
-        cp = subprocess.run(args, shell=True, check=True, stdout=subprocess.PIPE)
-        if cp.stdout is None:
-            print("None result from crsctl")
-            return UNKNOWN
-        out = str(cp.stdout, "utf-8")
+        cp = subprocess.check_output(args, shell=True)
+        out = str(cp)
         for l in out.split(os.linesep):
             if l.lstrip().rstrip() == "":
                 continue
@@ -91,12 +90,10 @@ def _check_rac_srv(cfg, warning=None, critical=None):
     _check_attrs(cfg, ["sid", "oh"])
     bin_name = os.path.join(cfg.oh, "bin", bin_name)
     try:
+        os.environ["ORACLE_HOME"] = cfg.oh
         args = bin_name + " status database -d {sid}".format(sid=cfg.sid)
-        cp = subprocess.run(args, shell=True, check=True, stdout=subprocess.PIPE)
-        if cp.stdout is None:
-            print("None result from crsctl")
-            return UNKNOWN
-        out = str(cp.stdout, "utf-8")
+        cp = subprocess.check_output(args, shell=True)
+        out = str(cp)
         running, not_running = 0, 0
         for l in out.split(os.linesep):
             if l.lstrip().rstrip() == "":
@@ -137,11 +134,8 @@ def _check_rac_asm(cfg, warning=None, critical=None):
     try:
         os.environ["ORACLE_SID"] = cfg.sid
         args ="sudo -u {user} {bin} lsdg".format(user=cfg.user,bin=bin_name)
-        cp = subprocess.run(args, shell=True, check=True, stdout=subprocess.PIPE)
-        if cp.stdout is None:
-            print("None result from asmcmd lsdg")
-            return UNKNOWN
-        out = str(cp.stdout, "utf-8")
+        cp = subprocess.check_output(args, shell=True)
+        out = str(cp)
         name_index, total_index, free_index = 12, 6, 7
         data = []
         for l,d in enumerate(out.split(os.linesep)):
@@ -155,7 +149,7 @@ def _check_rac_asm(cfg, warning=None, critical=None):
             else:
                 data.append({"name": cols[name_index], "total": int(cols[total_index]), "free": int(cols[free_index])})
         for d in data:
-            free_percent = d["free"] / d["total"]
+            free_percent = float(d["free"]) / float(d["total"])
             if free_percent <= critical_quota:
                 print("only {0} MB free in asm disk {1}".format(d["free"], d["name"]))
                 return CRITICAL
@@ -185,11 +179,8 @@ def _check_rac_listener(cfg, warning=None, critical=None):
     try:
         os.environ["ORACLE_HOME"] = cfg.oh
         args = bin_name + " status"
-        cp = subprocess.run(args, shell=True, check=True, stdout=subprocess.PIPE)
-        if cp.stdout is None:
-            print("None result from lsnrctl status")
-            return UNKNOWN
-        out = str(cp.stdout, "utf-8")
+        cp = subprocess.check_output(args, shell=True)
+        out = str(cp)
         ready = False
         msg = "Service {0} has 0 listener status is READY".format(cfg.sid)
         for l in out.split(os.linesep):
@@ -242,6 +233,7 @@ def _check_db_tablespace(cfg, warning=None, critical=None):
     quota = _get_os_file_quota()
     warning_quota = quota * (1 - (0.3 if warning is None else warning))
     critical_quota = quota * (1 - (0.1 if critical is None else critical))
+    excludes = []
     if hasattr(cfg, "exclude") and cfg.exclude is not None:
         excludes = cfg.exclude.upper().split(",")
     try:
@@ -350,7 +342,7 @@ def main():
         critical
     :return:
     """
-    parameters = ("sid", "host", "port", "user", "oh", "password", "exclude")
+    parameters = ("sid", "host", "port", "user", "oh", "password", "exclude", "ld")
     try:
         opts, args = getopt.getopt(sys.argv[1:], "m:w:c:", [x + "=" for x in parameters])
     except getopt.GetoptError as err:
