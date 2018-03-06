@@ -21,6 +21,8 @@ check db status
 check db free tablespace size
 7. db_rmanfullbackup<br>
 check db rman full backup
+8. db_dataguard<br>
+check db dataguard status
 
 ### install
 On the oracle server, install oracle instanceclient
@@ -82,4 +84,10 @@ and call this script as folowing
 ```
 check_oracle.py -m db_status --host=192.15.3.4 --port=1521 --user=nrpe --password=yourPASSWORD
 check_oracle.py -m db_tablespace --host=192.15.3.4 --port=1521 --user=nrpe --password=yourPASSWORD
+```
+when check model is db_dataguard, this script should execute at the dataguard server with sysdba role
+```
+when execute via nrpe, you should pass LD_LIBRARY_PATH to this script
+/usr/bin/env LD_LIBRARY_PATH=/path/to/instantclient_12_2 /path/to/check_oracle.py
+check_oracle.py -m db_dataguard --host=localhost --port=1521 --user=sys --password=yourpassword --sid=yoursid
 ```
