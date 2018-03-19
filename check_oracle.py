@@ -360,8 +360,17 @@ select name,value,unit,time_computed from V$DATAGUARD_STATS where name='apply la
             """)
             rs = cur.fetchone()
             if rs is None:
-                print("no dataguard status info found")
-                return CRITICAL
+                cur_role = conn.cursor()
+                cur_role.execute("""
+                select DATABASE_ROLE from v$database
+                """)
+                rs_role = cur_role.fetchone()
+                if rs_role[0] == "PRIMARY":
+                    print("the database is in primary role")
+                    return OK
+                else:
+                    print("no dataguard status info found")
+                    return CRITICAL
             delay = _get_seconds(rs[1])
             print("apply lag is {0}".format(_get_seconds_str(rs[1])))
             if delay is None or delay >= critical_quota * 60:
