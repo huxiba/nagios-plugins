@@ -307,6 +307,76 @@ ORDER BY t.START_TIME desc
         return CRITICAL
 
 
+
+def _get_seconds(time_str):
+    if time_str is None:
+        return None
+    m = re.match(r"^\+(\d{2})\s(\d{2}):(\d{2}):(\d{2})\.?(\d{0,3})$", time_str)
+    if m is None:
+        return None
+    return int(m.group(1)) * 24 * 60 * 60 + int(m.group(2)) * 60 * 60 + int(m.group(3)) * 60 + int(m.group(4))
+
+
+def _get_seconds_str(time_str):
+    if time_str is None:
+        return None
+    m = re.match(r"^\+(\d{2})\s(\d{2}):(\d{2}):(\d{2})\.?(\d{0,3})$", time_str)
+    if m is None:
+        return None
+    r = str(int(m.group(4))) + "秒"
+    if int(m.group(3)) > 0:
+        r = str(int(m.group(3))) + "分" + r
+    if int(m.group(2)) > 0:
+        r = str(int(m.group(2))) + "小时" + r
+    if int(m.group(1)) > 0:
+        r = str(int(m.group(1))) + "天" + r
+    return r
+
+
+def _check_db_dataguard(cfg, warning=None, critical=None):
+    """
+    check db dataguard status
+    :param cfg:
+    :param warning: minutes to warning
+    :param critical: minutes to critical
+    :return:
+    """
+    warning_quota = 30 if warning is None else warning
+    critical_quota = 360 if critical is None else critical
+    _check_attrs(cfg, ["sid", "user", "password", "host", "port"])
+    url = "{host}:{port}/{sid}".format(host=cfg.host, port=cfg.port, sid=cfg.sid)
+    try:
+        with cx_Oracle.connect(cfg.user, cfg.password, url, encoding="utf-8", nencoding="utf-8", mode=cx_Oracle.SYSDBA) as conn:
+            cur = conn.cursor()
+            cur.execute("""
+select name,value,unit,time_computed from V$DATAGUARD_STATS where name='apply lag'
+            """)
+            rs = cur.fetchone()
+            if rs is None:
+                cur_role = conn.cursor()
+                cur_role.execute("""
+                select DATABASE_ROLE from v$database
+                """)
+                rs_role = cur_role.fetchone()
+                if rs_role[0] == "PRIMARY":
+                    print("the database is in primary role")
+                    return OK
+                else:
+                    print("no dataguard status info found")
+                    return CRITICAL
+            delay = _get_seconds(rs[1])
+            print("apply lag is {0}".format(_get_seconds_str(rs[1])))
+            if delay is None or delay >= critical_quota * 60:
+                return CRITICAL
+            if delay >= warning_quota * 60:
+                return WARNING
+            return OK
+    except cx_Oracle.Error as err:
+        ora_err, = err.args
+        print("error code:{0}, message={1}".format(ora_err.code, ora_err.message))
+        return CRITICAL
+
+
 def main():
     """
     check_oracle.py -m model --sid=nnnnn --host=nnnnn ......
