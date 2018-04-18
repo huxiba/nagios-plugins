@@ -368,6 +368,9 @@ select name,value,unit,time_computed from V$DATAGUARD_STATS where name='apply la
                 if rs_role[0] == "PRIMARY":
                     print("the database is in primary role")
                     return OK
+                elif rs_role[0] == "SNAPSHOT STANDBY":
+                    print("the database is in snapshot standby")
+                    return WARNING
                 else:
                     print("no dataguard status info found")
                     return CRITICAL
