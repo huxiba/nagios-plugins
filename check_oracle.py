@@ -367,7 +367,7 @@ select name,value,unit,time_computed from V$DATAGUARD_STATS where name='apply la
                 rs_role = cur_role.fetchone()
                 if rs_role[0] == "PRIMARY":
                     print("the database is in primary role")
-                    return OK
+                    return WARNING
                 elif rs_role[0] == "SNAPSHOT STANDBY":
                     print("the database is in snapshot standby")
                     return WARNING
