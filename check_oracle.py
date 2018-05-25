@@ -233,14 +233,14 @@ def _check_db_tablespace(cfg, warning=None, critical=None):
     """
     check db tablespace datafiles free size
     :param cfg:
-    :param warning: free percent in tablespace, default 0.3
+    :param warning: free percent in tablespace, default 0.15
     :param critical: free percent in tablespace, default 0.1
     :return:
     """
     _check_attrs(cfg, ["sid", "user", "password", "host", "port"])
     url = "{host}:{port}/{sid}".format(host=cfg.host, port=cfg.port, sid=cfg.sid)
     quota = _get_os_file_quota()
-    warning_quota = quota * (1 - (0.3 if warning is None else warning))
+    warning_quota = quota * (1 - (0.15 if warning is None else warning))
     critical_quota = quota * (1 - (0.1 if critical is None else critical))
     if hasattr(cfg, "exclude") and cfg.exclude is not None:
         excludes = cfg.exclude.upper().split(",")
