@@ -242,6 +242,7 @@ def _check_db_tablespace(cfg, warning=None, critical=None):
     quota = _get_os_file_quota()
     warning_quota = quota * (1 - (0.15 if warning is None else warning))
     critical_quota = quota * (1 - (0.1 if critical is None else critical))
+    excludes = []
     if hasattr(cfg, "exclude") and cfg.exclude is not None:
         excludes = cfg.exclude.upper().split(",")
     try:
